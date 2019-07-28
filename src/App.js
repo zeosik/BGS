@@ -1,5 +1,5 @@
 import React from 'react';
-import MyComp from './components';
+import MyComp from './components/MyComp';
 import './App.css';
 
 function App() {
