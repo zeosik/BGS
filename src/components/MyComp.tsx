@@ -10,6 +10,23 @@ const allDirections: Direction[] = [Direction.E, Direction.NE, Direction.NW, Dir
 
 type HexProp = "q" | "r" | "s";
 
+class DirectionPath {
+    NE: number;
+    SE: number;
+    W: number;
+    constructor() {
+        this.NE = 0;
+        this.SE = 0;
+        this.W = 0;
+    }
+    [key: string]: number ;
+    *[Symbol.iterator]() {
+        yield this.NE;
+        yield this.SE;
+        return this.W;
+    }
+}
+
 type HexCoords = {
     q: number, r: number, s:number
 };
@@ -53,61 +70,43 @@ class MyComp extends Component<{}> {
         return hex;
     }
 
+    isCenterOld(hex: HexCoords): boolean {
+        const d: DirectionPath = this.distanceToCenter(hex);
+        const a: number = (3 * d.NE - 2 * d.SE) / 7;
+        const b: number = (-1 * d.NE + 3 * d.SE) / 7;
+        return Number.isInteger(a) && Number.isInteger(b) && d.W === 0;
+    }
+
     isCenter(hex: HexCoords): boolean {
-        return !!this.centerDirections(hex).length;
-    }
-
-    centerDirections(hex: HexCoords): Direction[] {
-        //const directions: HexCoords[] = hg.HexUtils.DIRECTIONS;
-        const directions: HexCoords[] = allDirections.map(x => this.next(zero, x));
-        const ret: Direction[] = directions
-        .map((x, i) => { return {hex: x, i: i} })
-        .filter((d) => this.isSame(hex, zero) || this.isSame(d.hex, hex) || this.isSame(hex, hg.HexUtils.multiply(d.hex, this.firstNotZeroMultiplier(hex, d.hex))))
-        .map((d) => Direction[d.i] as any as Direction)
-        return ret;
-    }
-
-    firstNotZeroMultiplier(hex: HexCoords, norm: HexCoords): number {
-        var x = [hex.q / norm.q, hex.r / norm.r, hex.s / norm.s]
-        .find(x => !Number.isNaN(x) && x !== 0);
-        if (x) {
-            return x;
-        }
-        throw new Error(`firstNotZeroMultiplier not found, l:${this.str(hex)} r:${this.str(norm)}`);
+        const a: number = (-3 * hex.r - hex.s) / 7;
+        const b: number = (hex.r -2 * hex.s) / 7;
+        return Number.isInteger(a) && Number.isInteger(b)
     }
 
     str(hex: HexCoords): string {
         return `(${hex.q}, ${hex.r}, ${hex.s})`;
     }
 
-    isSame(l: HexCoords, r: HexCoords) {
-        return l.q === r.q && l.r === r.r && l.s === r.s;
-    }
-
-    distanceToCenter(hex: HexCoords): Map<Direction, number> {
+    distanceToCenter(hex: HexCoords): DirectionPath {
         const dirs: Map<Direction, any[]> = new Map([
             [Direction.NE, ["q", "s"]],
             [Direction.SE, ["r", "s"]],
             [Direction.W, ["q", "r"]]
         ])
-        const res = new Map<Direction, number>();
+        const res: DirectionPath = new DirectionPath();
         var tmp: HexCoords = hex;
         for(const [dir, props] of dirs.entries()) {
             const base: HexCoords = hg.HexUtils.direction(dir);
             const p:number = this.max(tmp, base, props);
             const shift: HexCoords = hg.HexUtils.multiply(base, p);
             tmp = hg.HexUtils.subtract(tmp, shift);
-            res.set(dir as any as Direction, p);
+            res[Direction[dir]] = p;
         }
         return res;
     }
 
     distanceToCenterString(hex: HexCoords): string {
-        var res: string = "";
-        for (let [k, v] of this.distanceToCenter(hex)) {
-            res += ` ${Direction[k]}(${v})`;
-        }
-        return res;
+        return `(${[...this.distanceToCenter(hex)].join(", ")})`
     }
 
     max(hex: HexCoords, base: HexCoords, props: HexProp[]) {
@@ -136,8 +135,8 @@ class MyComp extends Component<{}> {
                     hexes.map((hex: any, i: number) => 
                     <hg.Hexagon key={i} q={hex.q} r={hex.r} s={hex.s}
                     className={this.isCenter(hex) ? 'hexCenter' : null}>
-                        {/* <hg.Text>{hex.q}, {hex.r}, {hex.s}</hg.Text> */}
-                        <hg.Text>{this.distanceToCenterString(hex)}</hg.Text>
+                        <hg.Text>{hex.q}, {hex.r}, {hex.s}</hg.Text>
+                        {/* <hg.Text>{this.distanceToCenterString(hex)}</hg.Text> */}
                     </hg.Hexagon>)
                 }
                 </hg.Layout>        
